@@ -64,7 +64,7 @@ try:
         long_format_data = data.reset_index().rename(columns={'Date': 'Date'})  # Adjust as needed
 
     # Save to CSV
-    long_format_data.to_csv('data/sp500_historical.csv', index=False)
+    long_format_data.to_csv('../data/sp500_historical.csv', index=False)
     print("Data successfully saved to 'sp500_historical.csv'")
     print(long_format_data.head())
     
