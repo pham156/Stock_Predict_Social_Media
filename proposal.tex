@@ -1,0 +1,253 @@
+\documentclass[11pt]{article}
+% --- Core Setup for Modern Compilers and Fonts ---
+% These packages ensure stable compilation and modern font rendering.
+\usepackage{fontspec}
+\usepackage[english]{babel}
+\babelfont{rm}{Noto Sans}
+
+% --- Geometry and Standard Packages ---
+\usepackage[margin=1in]{geometry}
+% Removed titlesec and its custom commands to fix compilation errors.
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb} % Added: Essential for mathematical symbols like \mathbb
+\usepackage[authoryear]{natbib}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+
+
+\titleformat{\section}{\bfseries\large}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\bfseries}{\thesubsection}{0.5em}{}
+
+\title{\textbf{QuantEdge: Stock Prediction via Market and Sentiment Modeling from Social Media \& News}}
+\author{Shiva Sai Vummaji, Tuan Minh Pham, Anish Nalluri, \\\\
+CS 577 Final Project Proposal\\Purdue University}
+\date{October 27, 2025}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Stock prices are shaped by both quantitative fundamentals and qualitative sentiment. 
+While traditional forecasting relies on historical prices and technical indicators, investor discussions on platforms such as Twitter (X), Reddit, and StockTwits often provide leading signals about market trends, volatility, and collective psychology. 
+This project investigates how combining structured market features with sentiment information from social media can improve short-term stock movement prediction.
+
+Our goal is to build a unified prediction framework that integrates two parallel components. 
+The first focuses on quantitative modeling, using engineered features from S\&P\,500 historical data—such as moving averages, Relative Strength Index (RSI), Price-to-Earnings (P/E) Ratio, Earnings Per Share (EPS), and lagged returns fed into classical machine learning and deep sequence models (e.g., ARIMA, LSTM, GRU, Transformer). 
+The second focuses on textual sentiment modeling, where posts and news headlines mentioning specific tickers are collected, cleaned, and analyzed using finance-tuned language models such as FinBERT or FinGPT. 
+A lightweight retrieval step (Sentence-BERT + FAISS) will be used within the sentiment pipeline to filter irrelevant posts and improve feature quality prior to aggregation.
+
+By fusing predictive signals from both numerical and textual sources, we aim to evaluate how market indicators and public sentiment jointly affect stock movements. 
+This dual approach emphasizes prediction modeling as the central objective, with retrieval serving as an internal mechanism for refining sentiment features rather than the main focus. 
+The resulting system will provide insights into how structured and unstructured data interact in shaping market behavior.
+
+
+\section{Related Work}
+Prior research has explored the relationship between online sentiment and stock price movements. 
+\citet{bing2015} identified significant correlations between Twitter sentiment and market returns, while \citet{lstm_sentiment2021} applied LSTM-based architectures to financial news for price forecasting. 
+More recent studies such as HiSA-SMFM~\citep{hisa2022} and StockEmotions~\citep{stockemotions2023} combine historical price data with textual sentiment to improve predictive performance, demonstrating the effectiveness of multi-modal approaches.
+
+Our work builds on this line of research by integrating both quantitative market modeling and sentiment-driven analysis into a unified prediction framework. 
+We systematically compare classical machine learning models (e.g., XGBoost, Random Forest) with deep sequence models (LSTM, GRU, Transformer) to evaluate their effectiveness in forecasting short-term stock movements. 
+In parallel, we enhance sentiment modeling through a retrieval-based filtering step that identifies the most contextually relevant social media posts and news headlines before applying FinBERT or FinGPT for sentiment scoring. 
+This retrieval mechanism refines sentiment features by reducing noise and redundancy, enabling a more reliable fusion of textual and numerical signals in the final predictive model.
+
+
+\section{Proposed Approach}
+Our system integrates quantitative market modeling with sentiment modeling from both financial news and social media to predict short-term stock movements. 
+The workflow is divided into interconnected modules:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Market Data and Feature Engineering:} 
+    We collect historical and live OHLCV data for S\&P\,500 tickers using \texttt{yfinance} and AlphaVantage APIs. 
+    The pipeline automatically handles stock splits, missing values, and delistings. 
+    From this data, we compute technical indicators (SMA, EMA, RSI, MACD, Bollinger Bands), lagged returns, and rolling volatility. 
+    Company fundamentals such as P/E ratio, EPS growth, and revenue metrics from \texttt{yfinance}, AlphaVantage or SEC EDGAR API are incorporated as additional features. 
+    Together, these quantitative signals form the foundation for the prediction models.
+
+    \item \textbf{Prediction Models:} 
+    We will model the structured market and fundamental data using both classical and deep learning methods. 
+    Baseline models include Linear Regression, Random Forest, and XGBoost for regression and classification tasks. 
+    To capture temporal dependencies, we will implement deep sequence architectures such as LSTM, GRU, and Transformer variants trained on sliding windows of historical prices. 
+    Each model will be tuned for sequence length, hidden size, and learning rate, and ensemble approaches may be explored to improve robustness. 
+    This pipeline evaluates the predictive capacity of quantitative features alone.
+
+    \item \textbf{Sentiment Data Retrieval and Modeling:} 
+    We gather unstructured text data from financial news headlines (Yahoo Finance, NewsAPI, AlphaVantage), and  
+    (2) social media platforms such as Twitter (X) and Reddit.  
+    Each text sample will be embedded using Sentence-BERT and indexed in FAISS to retrieve the most relevant $K$ headlines or posts for each stock and time window. 
+    Retrieved text will be analyzed using FinBERT or FinGPT to extract sentiment probabilities (positive, neutral, negative). 
+    Aggregated daily features—mean sentiment, sentiment variance, and post/article frequency—will form the sentiment-feature dataset. 
+    We will train both ML and DL models on these features to evaluate their independent predictive power.
+
+    \item \textbf{Fusion Modeling:} 
+    Quantitative (market and fundamental) features and textual sentiment features will be merged through early fusion (feature concatenation) and late fusion (ensemble averaging). 
+    This stage evaluates whether integrating both structured and unstructured data improves forecasting accuracy and temporal robustness. 
+    Comparisons across market-only, sentiment-only, and fused models will quantify each modality’s contribution.
+
+    \item \textbf{Optional Deployment:} 
+    If time permits, we will build a lightweight \texttt{FastAPI} service exposing endpoints for next-day prediction and model metadata to demonstrate potential for real-time inference.
+\end{enumerate}
+
+
+% \noindent
+% We expect that retrieval-based filtering will reduce text noise and improve downstream sentiment quality, leading to stronger predictive performance.
+
+\section{Experimental Plan}
+
+\subsection{Data Sources}
+Our project integrates three major data streams: quantitative market and fundamental data, unstructured sentiment data from both financial news and social media, and live market updates for evaluation.
+
+\textbf{Market and Fundamental Data:}
+We collect historical OHLCV data for all S\&P\,500 tickers using \texttt{yfinance} and AlphaVantage APIs, covering up to ten years of daily prices. 
+The pipeline automatically handles stock splits, missing values, and delistings to maintain a consistent dataset across tickers. 
+In addition, fundamental indicators such as P/E ratio, EPS growth, and revenue metrics are retrieved from AlphaVantage or SEC EDGAR API to provide long-term company-level context. 
+A live data retrieval module using AlphaVantage or Polygon API will supplement the historical dataset for real-time testing and validation.
+
+\textbf{Financial News and Social Media Sentiment Data:}
+To capture market sentiment, we gather unstructured text data from two complementary domains.  
+(1) Financial news headlines and articles are collected from Yahoo Finance, NewsAPI, or AlphaVantage’s news endpoints.  
+(2) Social media posts mentioning stock tickers (e.g., “\$AAPL”, “\$TSLA”) are collected from Twitter (X) and Reddit communities such as \textit{r/stocks} and \textit{r/wallstreetbets} using \texttt{snscrape} and PRAW.  
+Each text sample is embedded using Sentence-BERT and indexed in FAISS, enabling retrieval of the most contextually relevant $K$ items for each stock and trading window.  
+Retrieved texts are analyzed with FinBERT or FinGPT to compute sentiment probabilities (positive, neutral, negative), which are then aggregated into daily sentiment features—mean sentiment, sentiment variance, and post/article frequency.  
+These features are aligned by trading date and merged with the quantitative dataset for downstream modeling.
+
+\textbf{Integrated Dataset:}
+All market, fundamental, and sentiment data are synchronized on a unified time axis, allowing consistent train–validation–test splits for model training and evaluation. 
+The final multimodal dataset will form the foundation for both independent and fused modeling experiments.
+
+\subsection{Experimental Setup}
+We plan to evaluate two complementary modeling pipelines—one based on structured market data and one on textual sentiment—followed by a fusion stage that integrates both sources.
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Market Modeling:} 
+    Train predictive models using engineered quantitative features such as technical indicators, lagged returns, and rolling volatility. 
+    We will test both classical machine learning models (Linear Regression, Random Forest, XGBoost) and deep learning architectures (LSTM, GRU, Transformer) to benchmark forecasting performance on market-only inputs.
+
+    \item \textbf{Market + Fundamental Modeling:} 
+    Extend market models by incorporating fundamental data (P/E ratios, EPS growth, revenue metrics) to evaluate the contribution of company-specific financial indicators to prediction accuracy.
+
+    \item \textbf{Sentiment Modeling:} 
+    Independently train models using sentiment features derived from FinBERT or FinGPT analysis of social media and news data. 
+    Aggregated features—including daily mean sentiment, sentiment variance, and post frequency—will be used to predict the same market targets, allowing direct comparison between textual and numerical signals.
+
+    \item \textbf{Fusion Modeling:} 
+    Combine market and sentiment representations into a unified feature space through early fusion (feature concatenation) or late fusion (ensembling model outputs). 
+    The fused models will evaluate how integrating unstructured sentiment and structured market data together affects predictive accuracy and robustness.
+\end{enumerate}
+
+All experiments will use chronological train–validation–test splits to avoid look-ahead bias. 
+Evaluation metrics include RMSE and MAE for regression tasks, and Accuracy and F1-score for classification. 
+Additional financial metrics such as Sharpe ratio or hit rate may be reported for interpretability in a trading context.
+
+
+\subsection{Resources and Tools}
+All experiments will be conducted in Python using:
+\begin{itemize}[noitemsep]
+    \item \texttt{pandas}, \texttt{yfinance}, \texttt{TA-Lib} for data processing and feature engineering.
+    \item \texttt{PyTorch} and \texttt{scikit-learn} for model implementation.
+    \item \texttt{Transformers} (Hugging Face) and \texttt{FAISS} for sentiment analysis and optional retrieval.
+    % \item \texttt{Weights \& Biases} for experiment tracking and visualization.
+\end{itemize}
+Training and evaluation will be performed on Purdue’s Scholar GPU cluster. 
+The combined dataset is expected to remain under 10\,GB, well within feasible computational limits.
+
+% \subsection{Timeline}
+% \begin{center}
+% \begin{tabular}{@{}cl@{}}
+% \toprule
+% \textbf{Week} & \textbf{Milestones} \\
+% \midrule
+% 1 & Collect and preprocess S\&P\,500 data; begin social media and news scraping \\
+% 2 & Engineer technical indicators and construct sentiment dataset using FinBERT \\
+% 3 & Build and evaluate baseline ML models (Linear Regression, Random Forest, XGBoost) \\
+% 4 & Develop and train deep learning models (LSTM, GRU, Transformer) and test feature fusion \\
+% 5 & Analyze results, compare market-only vs.\ sentiment-only vs.\ fused models, and prepare report \\
+% 6 & \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+
+\subsection{Timeline}
+
+\begin{center}
+\begin{tabularx}{0.95\textwidth}{@{}lX@{}}  % tabularx allows text wrapping
+\toprule
+\textbf{Weeks} & \textbf{Milestones} \\
+\midrule
+\textbf{Week 1 (Oct 25 -- Nov 1)} &
+Collect and preprocess S\&P 500 OHLCV and fundamental data (yfinance, AlphaVantage). 
+Gather initial sentiment samples (Twitter, Reddit, NewsAPI). Clean and align datasets. \\[0.5em]
+
+\textbf{Week 2 (Nov 2 -- Nov 8)} &
+Engineer technical indicators (SMA, EMA, RSI, MACD, Bollinger Bands). 
+Train baseline models (Linear Regression, Random Forest, XGBoost). 
+Evaluate market-only results using RMSE/Accuracy. \\[0.5em]
+
+\textbf{Week 3 (Nov 9 -- Nov 15)} &
+Collect and preprocess full sentiment data. Embed text with Sentence-BERT, build FAISS index, apply FinBERT/FinGPT for sentiment scoring. 
+Aggregate daily sentiment features (mean, variance, frequency). \\[0.5em]
+
+\textbf{Week 4 (Nov 16 -- Nov 22)} &
+Train LSTM/GRU/Transformer models on market data. Fuse quantitative and sentiment features (early and late fusion). 
+Tune hyperparameters for deep models. \\[0.5em]
+
+\textbf{Week 5 (Nov 23 -- Nov 27)} &
+Evaluate all models on chronological test split. Compute RMSE, MAE, F1, and Sharpe ratio. Perform feature-importance or SHAP analysis. 
+Compare market-only, sentiment-only, and fused pipelines. \\[0.5em]
+
+\textbf{Week 6 (Nov 28 -- Dec 1)} &
+Write final report and prepare presentation slides. (Optional) Deploy FastAPI demo for real-time prediction. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+
+
+\section{Expected Outcomes}
+We anticipate that:
+\begin{itemize}[noitemsep]
+    \item Integrating textual sentiment with market indicators will improve predictive accuracy over single-source models.
+    \item Retrieval-based filtering will enhance sentiment feature quality by removing irrelevant posts.
+    \item Deep learning architectures (e.g., LSTM, Transformer) will capture longer-term temporal patterns more effectively than classical ML baselines.
+    \item Fusion experiments will reveal complementary interactions between quantitative and textual signals.
+\end{itemize}
+All code and processed data will be released for reproducibility.
+
+\section{Conclusion}
+This project explores quantitative and textual drivers of stock behavior through a unified prediction framework. By combining engineered technical indicators with refined sentiment features, we evaluate how structured market data and filtered social media signals jointly contribute to short-term forecasting accuracy. The integration of retrieval-enhanced sentiment with traditional market modeling provides insights into multi-modal financial prediction. While our framework integrates diverse data sources and models, it is limited by data availability and noise in social media sentiment, as well as the short project timeline that constrains hyperparameter tuning and large-scale model training. 
+Future extensions could explore larger data sources, and causal interpretation of sentiment signals to strengthen predictions.
+
+
+% \bibliographystyle{plainnat}
+\begin{thebibliography}{9}
+
+\bibitem[Yang et~al.(2020)]{finbert}
+Y. Yang, Y. Huang, and E. Lin. ``FinBERT: A Pretrained Language Model for Financial Communications.'' \textit{arXiv preprint arXiv:2006.08097}, 2020.
+
+\bibitem[Bhattacharjee et~al.(2022)]{hisa2022}
+R. Bhattacharjee et al. ``HiSA-SMFM: Historical and Sentiment Analysis based Stock Market Forecasting Model.'' \textit{arXiv:2203.08143}, 2022.
+
+\bibitem[Guo et~al.(2023)]{stockemotions2023}
+H. Guo et al. ``StockEmotions: Discover Investor Emotions for Financial Sentiment Analysis and Multivariate Time Series.'' \textit{arXiv:2301.09279}, 2023.
+
+\bibitem[Bing et~al.(2015)]{bing2015}
+X. Bing et al. ``Predicting Stock Market Trends via Twitter Sentiment Analysis.'' \textit{IEEE Int. Conf. on Data Mining}, 2015.
+
+\bibitem[Ko and Chang(2021)]{lstm_sentiment2021}
+J. Ko and C. Chang. ``LSTM-based Sentiment Analysis for Stock Price Forecast.'' \textit{Applied Soft Computing}, 2021.
+
+\bibitem[Mehtab et~al.(2020)]{mehtab2020lstm}
+S. Mehtab, J. Sen, and A. Dutta. ``Stock Price Prediction Using Machine Learning and LSTM-Based Deep Learning Models.'' \textit{arXiv preprint arXiv:2009.10819}, 2020.
+
+\bibitem[Yang et~al.(2024)]{yang2024fingpt}
+Y. Yang, Z. Chen, H. Wu, H. Yin, and L. Chen. ``FinGPT: Open-Source LLMs for Financial Applications.'' \textit{arXiv preprint arXiv:2407.16150}, 2024.
+
+
+
+\end{thebibliography}
+
+\end{document}
