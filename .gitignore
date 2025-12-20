@@ -38,3 +38,4 @@ Thumbs.db
 
 # Sweetviz reports
 *sweetviz_*.htmldata/
+.ipynb_checkpoints/
